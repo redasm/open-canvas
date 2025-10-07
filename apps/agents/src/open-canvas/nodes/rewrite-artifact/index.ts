@@ -29,7 +29,7 @@ export const rewriteArtifact = async (
   state: typeof OpenCanvasGraphAnnotation.State,
   config: LangGraphRunnableConfig
 ): Promise<OpenCanvasGraphReturnType> => {
-  const { modelName } = getModelConfig(config);
+  const { modelName } = await getModelConfig(config);
   const smallModelWithConfig = (await getModelFromConfig(config)).withConfig({
     runName: "rewrite_artifact_model_call",
   });
@@ -60,7 +60,7 @@ export const rewriteArtifact = async (
     : formattedPrompt;
 
   const contextDocumentMessages = await createContextDocumentMessages(config);
-  const isO1MiniModel = isUsingO1MiniModel(config);
+  const isO1MiniModel = await isUsingO1MiniModel(config);
   const newArtifactResponse = await smallModelWithConfig.invoke([
     { role: isO1MiniModel ? "user" : "system", content: fullSystemPrompt },
     ...contextDocumentMessages,

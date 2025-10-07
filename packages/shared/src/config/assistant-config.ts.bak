@@ -1,0 +1,369 @@
+/**
+ * 智能体配置系统重构 - 统一智能体配置接口
+ * 主要改动：
+ * 1. 定义标准化的智能体配置结构
+ * 2. 支持智能体模板系统
+ * 3. 提供类型安全的配置管理
+ * 4. 支持配置验证和错误处理
+ */
+
+import { ContextDocument } from '../types.js';
+
+export interface AssistantTool {
+  /** 工具名称 */
+  name: string;
+  /** 工具描述 */
+  description: string;
+  /** 工具参数JSON Schema */
+  parameters: Record<string, any>;
+}
+
+export interface AssistantIcon {
+  /** 图标名称（Lucide图标） */
+  name: string;
+  /** 图标颜色（十六进制） */
+  color: string;
+}
+
+export interface AssistantModel {
+  /** 模型ID */
+  id: string;
+  /** 模型配置 */
+  config: {
+    /** 温度参数 */
+    temperature: number;
+    /** 最大令牌数 */
+    maxTokens: number;
+    /** 是否启用工具调用 */
+    toolCalling: boolean;
+    /** 是否启用流式响应 */
+    streaming: boolean;
+  };
+}
+
+export interface AssistantConfig {
+  /** 智能体唯一标识 */
+  id: string;
+  /** 智能体名称 */
+  name: string;
+  /** 智能体描述（可选） */
+  description?: string;
+  /** 智能体图标 */
+  icon: AssistantIcon;
+  /** 模型配置 */
+  model: AssistantModel;
+  /** 系统提示（可选） */
+  systemPrompt?: string;
+  /** 工具列表 */
+  tools: AssistantTool[];
+  /** 上下文文档 */
+  documents: ContextDocument[];
+  /** 元数据 */
+  metadata: {
+    /** 是否为默认智能体 */
+    isDefault: boolean;
+    /** 创建时间 */
+    createdAt: Date;
+    /** 更新时间 */
+    updatedAt: Date;
+    /** 用户ID */
+    userId: string;
+  };
+}
+
+export interface AssistantTemplate {
+  /** 模板唯一标识 */
+  id: string;
+  /** 模板名称 */
+  name: string;
+  /** 模板描述 */
+  description: string;
+  /** 模板分类 */
+  category: AssistantTemplateCategory;
+  /** 模板配置 */
+  config: Partial<AssistantConfig>;
+  /** 预览信息 */
+  preview: {
+    /** 预览图标 */
+    icon: string;
+    /** 预览颜色 */
+    color: string;
+    /** 预览描述 */
+    description: string;
+  };
+}
+
+export type AssistantTemplateCategory = 
+  | 'general'
+  | 'coding'
+  | 'writing'
+  | 'analysis'
+  | 'creative'
+  | 'education'
+  | 'business';
+
+export interface CreateAssistantRequest {
+  /** 智能体名称 */
+  name: string;
+  /** 智能体描述（可选） */
+  description?: string;
+  /** 智能体图标 */
+  icon: AssistantIcon;
+  /** 模型配置 */
+  model: AssistantModel;
+  /** 系统提示（可选） */
+  systemPrompt?: string;
+  /** 工具列表 */
+  tools?: AssistantTool[];
+  /** 上下文文档 */
+  documents?: ContextDocument[];
+  /** 是否为默认智能体 */
+  isDefault?: boolean;
+}
+
+export interface UpdateAssistantRequest {
+  /** 智能体ID */
+  id: string;
+  /** 更新的配置 */
+  config: Partial<CreateAssistantRequest>;
+}
+
+export interface AssistantValidationResult {
+  /** 是否有效 */
+  isValid: boolean;
+  /** 错误列表 */
+  errors: AssistantValidationError[];
+  /** 警告列表 */
+  warnings: AssistantValidationWarning[];
+}
+
+export interface AssistantValidationError {
+  /** 错误字段 */
+  field: string;
+  /** 错误消息 */
+  message: string;
+  /** 错误代码 */
+  code: string;
+}
+
+export interface AssistantValidationWarning {
+  /** 警告字段 */
+  field: string;
+  /** 警告消息 */
+  message: string;
+  /** 警告代码 */
+  code: string;
+}
+
+/**
+ * 智能体错误类型
+ */
+export enum AssistantErrorCode {
+  ASSISTANT_NOT_FOUND = 'ASSISTANT_NOT_FOUND',
+  ASSISTANT_CREATION_FAILED = 'ASSISTANT_CREATION_FAILED',
+  ASSISTANT_UPDATE_FAILED = 'ASSISTANT_UPDATE_FAILED',
+  ASSISTANT_DELETION_FAILED = 'ASSISTANT_DELETION_FAILED',
+  INVALID_ASSISTANT_CONFIG = 'INVALID_ASSISTANT_CONFIG',
+  DUPLICATE_ASSISTANT_NAME = 'DUPLICATE_ASSISTANT_NAME',
+  TEMPLATE_NOT_FOUND = 'TEMPLATE_NOT_FOUND',
+  VALIDATION_FAILED = 'VALIDATION_FAILED',
+}
+
+export class AssistantError extends Error {
+  constructor(
+    public code: AssistantErrorCode,
+    message: string,
+    public details?: any,
+    public context?: any
+  ) {
+    super(message);
+    this.name = 'AssistantError';
+  }
+}
+
+/**
+ * 默认智能体配置
+ */
+export const DEFAULT_ASSISTANT_CONFIG: Partial<AssistantConfig> = {
+  icon: {
+    name: 'User',
+    color: '#000000',
+  },
+  model: {
+    id: 'gpt-4o-mini',
+    config: {
+      temperature: 0.5,
+      maxTokens: 4096,
+      toolCalling: true,
+      streaming: true,
+    },
+  },
+  tools: [],
+  documents: [],
+  metadata: {
+    isDefault: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    userId: '',
+  },
+};
+
+/**
+ * 智能体配置验证器
+ */
+export class AssistantConfigValidator {
+  /**
+   * 验证智能体配置
+   */
+  static validate(config: Partial<AssistantConfig>): AssistantValidationResult {
+    const errors: AssistantValidationError[] = [];
+    const warnings: AssistantValidationWarning[] = [];
+
+    // 验证必填字段
+    if (!config.name || config.name.trim().length === 0) {
+      errors.push({
+        field: 'name',
+        message: '智能体名称不能为空',
+        code: 'REQUIRED_FIELD',
+      });
+    }
+
+    if (config.name && config.name.length > 100) {
+      errors.push({
+        field: 'name',
+        message: '智能体名称不能超过100个字符',
+        code: 'NAME_TOO_LONG',
+      });
+    }
+
+    // 验证描述
+    if (config.description && config.description.length > 500) {
+      warnings.push({
+        field: 'description',
+        message: '智能体描述建议不超过500个字符',
+        code: 'DESCRIPTION_TOO_LONG',
+      });
+    }
+
+    // 验证图标
+    if (!config.icon) {
+      errors.push({
+        field: 'icon',
+        message: '智能体图标不能为空',
+        code: 'REQUIRED_FIELD',
+      });
+    } else {
+      if (!config.icon.name) {
+        errors.push({
+          field: 'icon.name',
+          message: '图标名称不能为空',
+          code: 'REQUIRED_FIELD',
+        });
+      }
+
+      if (!config.icon.color || !/^#[0-9A-F]{6}$/i.test(config.icon.color)) {
+        errors.push({
+          field: 'icon.color',
+          message: '图标颜色必须是有效的十六进制颜色值',
+          code: 'INVALID_COLOR',
+        });
+      }
+    }
+
+    // 验证模型配置
+    if (!config.model) {
+      errors.push({
+        field: 'model',
+        message: '模型配置不能为空',
+        code: 'REQUIRED_FIELD',
+      });
+    } else {
+      if (!config.model.id) {
+        errors.push({
+          field: 'model.id',
+          message: '模型ID不能为空',
+          code: 'REQUIRED_FIELD',
+        });
+      }
+
+      if (config.model.config) {
+        const modelConfig = config.model.config;
+        
+        if (modelConfig.temperature < 0 || modelConfig.temperature > 1) {
+          errors.push({
+            field: 'model.config.temperature',
+            message: '温度参数必须在0-1之间',
+            code: 'INVALID_TEMPERATURE',
+          });
+        }
+
+        if (modelConfig.maxTokens < 1 || modelConfig.maxTokens > 100000) {
+          errors.push({
+            field: 'model.config.maxTokens',
+            message: '最大令牌数必须在1-100000之间',
+            code: 'INVALID_MAX_TOKENS',
+          });
+        }
+      }
+    }
+
+    // 验证系统提示
+    if (config.systemPrompt && config.systemPrompt.length > 10000) {
+      warnings.push({
+        field: 'systemPrompt',
+        message: '系统提示建议不超过10000个字符',
+        code: 'SYSTEM_PROMPT_TOO_LONG',
+      });
+    }
+
+    // 验证工具配置
+    if (config.tools) {
+      config.tools.forEach((tool, index) => {
+        if (!tool.name) {
+          errors.push({
+            field: `tools[${index}].name`,
+            message: '工具名称不能为空',
+            code: 'REQUIRED_FIELD',
+          });
+        }
+
+        if (!tool.description) {
+          errors.push({
+            field: `tools[${index}].description`,
+            message: '工具描述不能为空',
+            code: 'REQUIRED_FIELD',
+          });
+        }
+
+        if (!tool.parameters) {
+          errors.push({
+            field: `tools[${index}].parameters`,
+            message: '工具参数不能为空',
+            code: 'REQUIRED_FIELD',
+          });
+        }
+      });
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings,
+    };
+  }
+
+  /**
+   * 验证智能体名称唯一性
+   */
+  static validateNameUniqueness(
+    name: string,
+    existingAssistants: AssistantConfig[],
+    excludeId?: string
+  ): boolean {
+    return !existingAssistants.some(
+      assistant => 
+        assistant.name.toLowerCase() === name.toLowerCase() && 
+        assistant.id !== excludeId
+    );
+  }
+}

@@ -51,7 +51,7 @@ export async function optionallyUpdateArtifactMeta(
     throw new Error("No recent human message found");
   }
 
-  const isO1MiniModel = isUsingO1MiniModel(config);
+  const isO1MiniModel = await isUsingO1MiniModel(config);
   const optionallyUpdateArtifactResponse = await toolCallingModel.invoke([
     {
       role: isO1MiniModel ? "user" : "system",

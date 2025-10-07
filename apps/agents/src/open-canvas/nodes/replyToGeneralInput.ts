@@ -64,7 +64,7 @@ You also have the following reflections on style guidelines and general memories
     );
 
   const contextDocumentMessages = await createContextDocumentMessages(config);
-  const isO1MiniModel = isUsingO1MiniModel(config);
+  const isO1MiniModel = await isUsingO1MiniModel(config);
   const response = await smallModel.invoke([
     { role: isO1MiniModel ? "user" : "system", content: formattedPrompt },
     ...contextDocumentMessages,

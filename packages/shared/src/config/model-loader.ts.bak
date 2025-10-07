@@ -1,0 +1,271 @@
+/**
+ * 模型配置加载器 - 从配置文件加载模型配置
+ * 主要改动：
+ * 1. 实现配置文件加载和解析
+ * 2. 支持环境变量替换
+ * 3. 提供配置验证和错误处理
+ * 4. 支持热重载配置
+ */
+
+import { ModelRegistry } from './model-registry.js';
+import { ModelDefinition, ModelProviderConfig, ModelError, ModelErrorCode } from './model-config.js';
+import * as fs from 'fs';
+import * as path from 'path';
+
+export class ModelConfigLoader {
+  private static instance: ModelConfigLoader;
+  private registry: ModelRegistry;
+  private configPath: string;
+  private lastModified: number = 0;
+
+  private constructor(configPath: string = 'config/models.json') {
+    this.registry = ModelRegistry.getInstance();
+    this.configPath = configPath;
+  }
+
+  /**
+   * 获取单例实例
+   */
+  static getInstance(configPath?: string): ModelConfigLoader {
+    if (!ModelConfigLoader.instance) {
+      ModelConfigLoader.instance = new ModelConfigLoader(configPath);
+    }
+    return ModelConfigLoader.instance;
+  }
+
+  /**
+   * 加载配置文件
+   */
+  async loadConfig(): Promise<void> {
+    try {
+      const configData = await this.readConfigFile();
+      const processedConfig = this.processConfig(configData);
+      
+      // 验证配置
+      this.validateConfig(processedConfig);
+      
+      // 导入到注册器
+      this.registry.importConfig(processedConfig);
+      
+      console.log(`✅ 成功加载模型配置: ${Object.keys(processedConfig.models).length} 个模型, ${Object.keys(processedConfig.providers).length} 个提供商`);
+    } catch (error) {
+      console.error('❌ 加载模型配置失败:', error);
+      throw new ModelError(
+        ModelErrorCode.INVALID_CONFIG,
+        `Failed to load model configuration: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { configPath: this.configPath, error }
+      );
+    }
+  }
+
+  /**
+   * 重新加载配置
+   */
+  async reloadConfig(): Promise<void> {
+    if (this.hasConfigChanged()) {
+      await this.loadConfig();
+    }
+  }
+
+  /**
+   * 检查配置是否已更改
+   */
+  hasConfigChanged(): boolean {
+    try {
+      const stats = fs.statSync(this.configPath);
+      return stats.mtime.getTime() > this.lastModified;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * 读取配置文件
+   */
+  private async readConfigFile(): Promise<any> {
+    try {
+      const configContent = fs.readFileSync(this.configPath, 'utf-8');
+      const stats = fs.statSync(this.configPath);
+      this.lastModified = stats.mtime.getTime();
+      
+      return JSON.parse(configContent);
+    } catch (error) {
+      throw new ModelError(
+        ModelErrorCode.INVALID_CONFIG,
+        `Failed to read configuration file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { configPath: this.configPath, error }
+      );
+    }
+  }
+
+  /**
+   * 处理配置（环境变量替换等）
+   */
+  private processConfig(config: any): {
+    providers: Record<string, ModelProviderConfig>;
+    models: Record<string, ModelDefinition>;
+  } {
+    const processedProviders: Record<string, ModelProviderConfig> = {};
+    const processedModels: Record<string, ModelDefinition> = {};
+
+    // 处理提供商配置
+    if (config.providers) {
+      Object.entries(config.providers).forEach(([name, providerConfig]: [string, any]) => {
+        processedProviders[name] = this.processProviderConfig(providerConfig);
+      });
+    }
+
+    // 处理模型配置
+    if (config.models) {
+      Object.entries(config.models).forEach(([id, modelConfig]: [string, any]) => {
+        processedModels[id] = this.processModelConfig(modelConfig);
+      });
+    }
+
+    return {
+      providers: processedProviders,
+      models: processedModels,
+    };
+  }
+
+  /**
+   * 处理提供商配置
+   */
+  private processProviderConfig(config: any): ModelProviderConfig {
+    return {
+      name: config.name,
+      displayName: config.displayName,
+      apiKey: this.replaceEnvironmentVariables(config.apiKey),
+      baseUrl: config.baseUrl ? this.replaceEnvironmentVariables(config.baseUrl) : undefined,
+      customHeaders: config.customHeaders || {},
+      supportedFeatures: {
+        toolCalling: config.supportedFeatures?.toolCalling || false,
+        streaming: config.supportedFeatures?.streaming || false,
+        temperature: config.supportedFeatures?.temperature || false,
+        maxTokens: config.supportedFeatures?.maxTokens || 4096,
+      },
+    };
+  }
+
+  /**
+   * 处理模型配置
+   */
+  private processModelConfig(config: any): ModelDefinition {
+    return {
+      id: config.id,
+      name: config.name,
+      displayName: config.displayName,
+      provider: config.provider,
+      providerConfig: {} as ModelProviderConfig, // 将在注册时填充
+      capabilities: {
+        maxTokens: config.capabilities?.maxTokens || 4096,
+        temperatureRange: {
+          min: config.capabilities?.temperatureRange?.min || 0,
+          max: config.capabilities?.temperatureRange?.max || 1,
+          default: config.capabilities?.temperatureRange?.default || 0.5,
+        },
+        supportsToolCalling: config.capabilities?.supportsToolCalling || false,
+        supportsStreaming: config.capabilities?.supportsStreaming || false,
+      },
+      metadata: {
+        isNew: config.metadata?.isNew || false,
+        category: config.metadata?.category || 'general',
+        description: config.metadata?.description,
+      },
+    };
+  }
+
+  /**
+   * 替换环境变量
+   */
+  private replaceEnvironmentVariables(value: string): string {
+    if (typeof value !== 'string') {
+      return value;
+    }
+
+    return value.replace(/\$\{([^}]+)\}/g, (match, envVar) => {
+      const envValue = process.env[envVar];
+      if (envValue === undefined) {
+        console.warn(`⚠️  环境变量 ${envVar} 未设置`);
+        return match; // 保持原样
+      }
+      return envValue;
+    });
+  }
+
+  /**
+   * 验证配置
+   */
+  private validateConfig(config: {
+    providers: Record<string, ModelProviderConfig>;
+    models: Record<string, ModelDefinition>;
+  }): void {
+    // 验证提供商配置
+    Object.entries(config.providers).forEach(([name, provider]) => {
+      if (!provider.name || !provider.displayName) {
+        throw new ModelError(
+          ModelErrorCode.INVALID_CONFIG,
+          `Provider ${name} is missing required fields: name or displayName`
+        );
+      }
+    });
+
+    // 验证模型配置
+    Object.entries(config.models).forEach(([id, model]) => {
+      if (!model.id || !model.name || !model.provider) {
+        throw new ModelError(
+          ModelErrorCode.INVALID_CONFIG,
+          `Model ${id} is missing required fields: id, name, or provider`
+        );
+      }
+
+      // 检查提供商是否存在
+      if (!config.providers[model.provider]) {
+        throw new ModelError(
+          ModelErrorCode.INVALID_CONFIG,
+          `Model ${id} references unknown provider: ${model.provider}`
+        );
+      }
+
+      // 验证能力配置
+      if (model.capabilities.maxTokens <= 0) {
+        throw new ModelError(
+          ModelErrorCode.INVALID_CONFIG,
+          `Model ${id} has invalid maxTokens: ${model.capabilities.maxTokens}`
+        );
+      }
+
+      if (model.capabilities.temperatureRange.min >= model.capabilities.temperatureRange.max) {
+        throw new ModelError(
+          ModelErrorCode.INVALID_CONFIG,
+          `Model ${id} has invalid temperature range`
+        );
+      }
+    });
+  }
+
+  /**
+   * 获取配置统计信息
+   */
+  getConfigStats(): {
+    configPath: string;
+    lastModified: Date;
+    providersCount: number;
+    modelsCount: number;
+  } {
+    return {
+      configPath: this.configPath,
+      lastModified: new Date(this.lastModified),
+      providersCount: Object.keys(this.registry.exportConfig().providers).length,
+      modelsCount: Object.keys(this.registry.exportConfig().models).length,
+    };
+  }
+
+  /**
+   * 设置配置路径
+   */
+  setConfigPath(configPath: string): void {
+    this.configPath = configPath;
+    this.lastModified = 0; // 重置修改时间
+  }
+}

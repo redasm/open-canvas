@@ -2,11 +2,9 @@
 
 import { ArtifactRenderer } from "@/components/artifacts/ArtifactRenderer";
 import { WebSearchResults } from "@/components/web-search-results";
-import {
-  ALL_MODEL_NAMES,
-  DEFAULT_MODEL_CONFIG,
-  DEFAULT_MODEL_NAME,
-} from "@opencanvas/shared/models";
+// 使用新的类型定义和默认配置，不再依赖旧的models.ts
+type ALL_MODEL_NAMES = string;
+import { getDefaultModelId, getDefaultModelConfig } from "@opencanvas/shared/config/default-model-config";
 import { useGraphContext } from "@/contexts/GraphContext";
 import { useToast } from "@/hooks/use-toast";
 import { getLanguageTemplate } from "@/lib/get_language_template";
@@ -118,18 +116,18 @@ export function CanvasComponent() {
                     thread.metadata.customModelName as ALL_MODEL_NAMES
                   );
                 } else {
-                  setModelName(DEFAULT_MODEL_NAME);
+                  setModelName(getDefaultModelId());
                 }
 
                 if (thread?.metadata?.modelConfig) {
                   setModelConfig(
                     (thread?.metadata?.customModelName ??
-                      DEFAULT_MODEL_NAME) as ALL_MODEL_NAMES,
+                      getDefaultModelId()) as ALL_MODEL_NAMES,
                     (thread.metadata?.modelConfig ??
-                      DEFAULT_MODEL_CONFIG) as CustomModelConfig
+                      getDefaultModelConfig()) as CustomModelConfig
                   );
                 } else {
-                  setModelConfig(DEFAULT_MODEL_NAME, DEFAULT_MODEL_CONFIG);
+                  setModelConfig(getDefaultModelId(), getDefaultModelConfig());
                 }
               } else {
                 setChatStarted(false);
@@ -170,18 +168,18 @@ export function CanvasComponent() {
                       thread.metadata.customModelName as ALL_MODEL_NAMES
                     );
                   } else {
-                    setModelName(DEFAULT_MODEL_NAME);
+                    setModelName(getDefaultModelId());
                   }
 
                   if (thread?.metadata?.modelConfig) {
                     setModelConfig(
                       (thread?.metadata.customModelName ??
-                        DEFAULT_MODEL_NAME) as ALL_MODEL_NAMES,
+                        getDefaultModelId()) as ALL_MODEL_NAMES,
                       (thread.metadata.modelConfig ??
-                        DEFAULT_MODEL_CONFIG) as CustomModelConfig
+                        getDefaultModelConfig()) as CustomModelConfig
                     );
                   } else {
-                    setModelConfig(DEFAULT_MODEL_NAME, DEFAULT_MODEL_CONFIG);
+                    setModelConfig(getDefaultModelId(), getDefaultModelConfig());
                   }
                 } else {
                   setChatStarted(false);

@@ -1,4 +1,5 @@
-import { ALL_MODEL_NAMES } from "@opencanvas/shared/models";
+// 使用新的类型定义，不再依赖旧的models.ts
+type ALL_MODEL_NAMES = string;
 import { CustomModelConfig, GraphInput } from "@opencanvas/shared/types";
 
 export interface StreamWorkerMessage {

@@ -1,0 +1,389 @@
+{
+  "providers": {
+    "openai": {
+      "name": "openai",
+      "displayName": "OpenAI",
+      "apiKey": "${OPENAI_API_KEY}",
+      "supportedFeatures": {
+        "toolCalling": true,
+        "streaming": true,
+        "temperature": true,
+        "maxTokens": 100000
+      }
+    },
+    "anthropic": {
+      "name": "anthropic",
+      "displayName": "Anthropic",
+      "apiKey": "${ANTHROPIC_API_KEY}",
+      "supportedFeatures": {
+        "toolCalling": true,
+        "streaming": true,
+        "temperature": true,
+        "maxTokens": 200000
+      }
+    },
+    "google-genai": {
+      "name": "google-genai",
+      "displayName": "Google AI",
+      "apiKey": "${GOOGLE_API_KEY}",
+      "supportedFeatures": {
+        "toolCalling": true,
+        "streaming": true,
+        "temperature": true,
+        "maxTokens": 1000000
+      }
+    },
+    "azure_openai": {
+      "name": "azure_openai",
+      "displayName": "Azure OpenAI",
+      "apiKey": "${AZURE_OPENAI_API_KEY}",
+      "supportedFeatures": {
+        "toolCalling": true,
+        "streaming": true,
+        "temperature": true,
+        "maxTokens": 100000
+      }
+    },
+    "fireworks": {
+      "name": "fireworks",
+      "displayName": "Fireworks AI",
+      "apiKey": "${FIREWORKS_API_KEY}",
+      "supportedFeatures": {
+        "toolCalling": true,
+        "streaming": true,
+        "temperature": true,
+        "maxTokens": 100000
+      }
+    },
+    "groq": {
+      "name": "groq",
+      "displayName": "Groq",
+      "apiKey": "${GROQ_API_KEY}",
+      "supportedFeatures": {
+        "toolCalling": true,
+        "streaming": true,
+        "temperature": true,
+        "maxTokens": 100000
+      }
+    },
+    "ollama": {
+      "name": "ollama",
+      "displayName": "Ollama",
+      "apiKey": "",
+      "supportedFeatures": {
+        "toolCalling": true,
+        "streaming": true,
+        "temperature": true,
+        "maxTokens": 100000
+      }
+    }
+  },
+  "models": {
+    "gpt-4.1": {
+      "id": "gpt-4.1",
+      "name": "gpt-4.1",
+      "displayName": "GPT 4.1",
+      "provider": "openai",
+      "capabilities": {
+        "maxTokens": 32768,
+        "temperatureRange": { "min": 0, "max": 1, "default": 0.5 },
+        "supportsToolCalling": true,
+        "supportsStreaming": true
+      },
+      "metadata": {
+        "isNew": true,
+        "category": "general",
+        "description": "Latest GPT-4 model with improved performance"
+      }
+    },
+    "gpt-4.1-mini": {
+      "id": "gpt-4.1-mini",
+      "name": "gpt-4.1-mini",
+      "displayName": "GPT 4.1 mini",
+      "provider": "openai",
+      "capabilities": {
+        "maxTokens": 32768,
+        "temperatureRange": { "min": 0, "max": 1, "default": 0.5 },
+        "supportsToolCalling": true,
+        "supportsStreaming": true
+      },
+      "metadata": {
+        "isNew": true,
+        "category": "general",
+        "description": "Faster and more affordable GPT-4.1 model"
+      }
+    },
+    "o4-mini": {
+      "id": "o4-mini",
+      "name": "o4-mini",
+      "displayName": "o4 mini",
+      "provider": "openai",
+      "capabilities": {
+        "maxTokens": 100000,
+        "temperatureRange": { "min": 0, "max": 1, "default": 0.5 },
+        "supportsToolCalling": true,
+        "supportsStreaming": true
+      },
+      "metadata": {
+        "isNew": true,
+        "category": "general",
+        "description": "OpenAI's reasoning model mini version"
+      }
+    },
+    "gpt-4o": {
+      "id": "gpt-4o",
+      "name": "gpt-4o",
+      "displayName": "GPT 4o",
+      "provider": "openai",
+      "capabilities": {
+        "maxTokens": 16384,
+        "temperatureRange": { "min": 0, "max": 1, "default": 0.5 },
+        "supportsToolCalling": true,
+        "supportsStreaming": true
+      },
+      "metadata": {
+        "isNew": false,
+        "category": "general",
+        "description": "GPT-4 optimized model"
+      }
+    },
+    "gpt-4o-mini": {
+      "id": "gpt-4o-mini",
+      "name": "gpt-4o-mini",
+      "displayName": "GPT 4o mini",
+      "provider": "openai",
+      "capabilities": {
+        "maxTokens": 16384,
+        "temperatureRange": { "min": 0, "max": 1, "default": 0.5 },
+        "supportsToolCalling": true,
+        "supportsStreaming": true
+      },
+      "metadata": {
+        "isNew": false,
+        "category": "general",
+        "description": "Faster and more affordable GPT-4o model"
+      }
+    },
+    "gpt-4.5-preview": {
+      "id": "gpt-4.5-preview",
+      "name": "gpt-4.5-preview",
+      "displayName": "GPT 4.5",
+      "provider": "openai",
+      "capabilities": {
+        "maxTokens": 16384,
+        "temperatureRange": { "min": 0, "max": 1, "default": 0.5 },
+        "supportsToolCalling": true,
+        "supportsStreaming": true
+      },
+      "metadata": {
+        "isNew": false,
+        "category": "general",
+        "description": "GPT-4.5 preview model"
+      }
+    },
+    "o3-mini": {
+      "id": "o3-mini",
+      "name": "o3-mini",
+      "displayName": "o3 mini",
+      "provider": "openai",
+      "capabilities": {
+        "maxTokens": 100000,
+        "temperatureRange": { "min": 0, "max": 1, "default": 0.5 },
+        "supportsToolCalling": true,
+        "supportsStreaming": true
+      },
+      "metadata": {
+        "isNew": false,
+        "category": "general",
+        "description": "OpenAI's reasoning model mini version"
+      }
+    },
+    "o1-mini": {
+      "id": "o1-mini",
+      "name": "o1-mini",
+      "displayName": "o1 mini",
+      "provider": "openai",
+      "capabilities": {
+        "maxTokens": 65536,
+        "temperatureRange": { "min": 0, "max": 1, "default": 0.5 },
+        "supportsToolCalling": true,
+        "supportsStreaming": true
+      },
+      "metadata": {
+        "isNew": false,
+        "category": "general",
+        "description": "OpenAI's reasoning model mini version"
+      }
+    },
+    "o1": {
+      "id": "o1",
+      "name": "o1",
+      "displayName": "o1",
+      "provider": "openai",
+      "capabilities": {
+        "maxTokens": 100000,
+        "temperatureRange": { "min": 0, "max": 1, "default": 0.5 },
+        "supportsToolCalling": true,
+        "supportsStreaming": true
+      },
+      "metadata": {
+        "isNew": false,
+        "category": "general",
+        "description": "OpenAI's reasoning model"
+      }
+    },
+    "claude-3-5-sonnet-latest": {
+      "id": "claude-3-5-sonnet-latest",
+      "name": "claude-3-5-sonnet-latest",
+      "displayName": "Claude 3.5 Sonnet",
+      "provider": "anthropic",
+      "capabilities": {
+        "maxTokens": 8192,
+        "temperatureRange": { "min": 0, "max": 1, "default": 0.5 },
+        "supportsToolCalling": true,
+        "supportsStreaming": true
+      },
+      "metadata": {
+        "isNew": false,
+        "category": "general",
+        "description": "Anthropic's most capable model"
+      }
+    },
+    "claude-3-5-haiku-latest": {
+      "id": "claude-3-5-haiku-latest",
+      "name": "claude-3-5-haiku-latest",
+      "displayName": "Claude 3.5 Haiku",
+      "provider": "anthropic",
+      "capabilities": {
+        "maxTokens": 8192,
+        "temperatureRange": { "min": 0, "max": 1, "default": 0.5 },
+        "supportsToolCalling": true,
+        "supportsStreaming": true
+      },
+      "metadata": {
+        "isNew": false,
+        "category": "general",
+        "description": "Anthropic's fastest model"
+      }
+    },
+    "claude-3-opus-latest": {
+      "id": "claude-3-opus-latest",
+      "name": "claude-3-opus-latest",
+      "displayName": "Claude 3 Opus",
+      "provider": "anthropic",
+      "capabilities": {
+        "maxTokens": 8192,
+        "temperatureRange": { "min": 0, "max": 1, "default": 0.5 },
+        "supportsToolCalling": true,
+        "supportsStreaming": true
+      },
+      "metadata": {
+        "isNew": false,
+        "category": "general",
+        "description": "Anthropic's most powerful model"
+      }
+    },
+    "fireworks/llama-v3p3-70b-instruct": {
+      "id": "fireworks/llama-v3p3-70b-instruct",
+      "name": "fireworks/llama-v3p3-70b-instruct",
+      "displayName": "Llama 3.3 70B",
+      "provider": "fireworks",
+      "capabilities": {
+        "maxTokens": 32768,
+        "temperatureRange": { "min": 0, "max": 1, "default": 0.5 },
+        "supportsToolCalling": true,
+        "supportsStreaming": true
+      },
+      "metadata": {
+        "isNew": false,
+        "category": "general",
+        "description": "Meta's Llama 3.3 70B model via Fireworks"
+      }
+    },
+    "fireworks/llama-v3p3-8b-instruct": {
+      "id": "fireworks/llama-v3p3-8b-instruct",
+      "name": "fireworks/llama-v3p3-8b-instruct",
+      "displayName": "Llama 3.3 8B",
+      "provider": "fireworks",
+      "capabilities": {
+        "maxTokens": 32768,
+        "temperatureRange": { "min": 0, "max": 1, "default": 0.5 },
+        "supportsToolCalling": true,
+        "supportsStreaming": true
+      },
+      "metadata": {
+        "isNew": false,
+        "category": "general",
+        "description": "Meta's Llama 3.3 8B model via Fireworks"
+      }
+    },
+    "gemini-1.5-pro-latest": {
+      "id": "gemini-1.5-pro-latest",
+      "name": "gemini-1.5-pro-latest",
+      "displayName": "Gemini 1.5 Pro",
+      "provider": "google-genai",
+      "capabilities": {
+        "maxTokens": 32768,
+        "temperatureRange": { "min": 0, "max": 1, "default": 0.5 },
+        "supportsToolCalling": true,
+        "supportsStreaming": true
+      },
+      "metadata": {
+        "isNew": false,
+        "category": "general",
+        "description": "Google's most capable model"
+      }
+    },
+    "gemini-1.5-flash-latest": {
+      "id": "gemini-1.5-flash-latest",
+      "name": "gemini-1.5-flash-latest",
+      "displayName": "Gemini 1.5 Flash",
+      "provider": "google-genai",
+      "capabilities": {
+        "maxTokens": 32768,
+        "temperatureRange": { "min": 0, "max": 1, "default": 0.5 },
+        "supportsToolCalling": true,
+        "supportsStreaming": true
+      },
+      "metadata": {
+        "isNew": false,
+        "category": "general",
+        "description": "Google's fastest model"
+      }
+    },
+    "groq/llama-3.1-70b-versatile": {
+      "id": "groq/llama-3.1-70b-versatile",
+      "name": "groq/llama-3.1-70b-versatile",
+      "displayName": "Llama 3.1 70B",
+      "provider": "groq",
+      "capabilities": {
+        "maxTokens": 32768,
+        "temperatureRange": { "min": 0, "max": 1, "default": 0.5 },
+        "supportsToolCalling": true,
+        "supportsStreaming": true
+      },
+      "metadata": {
+        "isNew": false,
+        "category": "general",
+        "description": "Meta's Llama 3.1 70B model via Groq"
+      }
+    },
+    "groq/llama-3.1-8b-instant": {
+      "id": "groq/llama-3.1-8b-instant",
+      "name": "groq/llama-3.1-8b-instant",
+      "displayName": "Llama 3.1 8B",
+      "provider": "groq",
+      "capabilities": {
+        "maxTokens": 32768,
+        "temperatureRange": { "min": 0, "max": 1, "default": 0.5 },
+        "supportsToolCalling": true,
+        "supportsStreaming": true
+      },
+      "metadata": {
+        "isNew": false,
+        "category": "general",
+        "description": "Meta's Llama 3.1 8B model via Groq"
+      }
+    }
+  }
+}

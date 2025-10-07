@@ -12,6 +12,9 @@ import {
 import { createClient } from "@/hooks/utils";
 import { getCookie, removeCookie } from "@/lib/cookies";
 import { ASSISTANT_ID_COOKIE } from "@/constants";
+import { useErrorHandler } from "@/hooks/use-error-handler";
+import { enhancedCacheManager } from "@/lib/cache/enhanced-cache-manager";
+import { useAssistantTemplates } from "@/hooks/use-assistant-templates";
 
 type AssistantContentType = {
   assistants: Assistant[];
@@ -100,6 +103,9 @@ const AssistantContext = createContext<AssistantContentType | undefined>(
 
 export function AssistantProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  const { handleError } = useErrorHandler();
+  const cacheManager = enhancedCacheManager;
+  const { createAssistantFromTemplate } = useAssistantTemplates();
   const [isLoadingAllAssistants, setIsLoadingAllAssistants] = useState(false);
   const [isDeletingAssistant, setIsDeletingAssistant] = useState(false);
   const [isCreatingAssistant, setIsCreatingAssistant] = useState(false);
@@ -110,6 +116,19 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   const getAssistants = async (userId: string): Promise<void> => {
     setIsLoadingAllAssistants(true);
     try {
+      // 首先尝试从缓存获取
+      const cacheKey = `assistants:${userId}`;
+      const cachedAssistants = await cacheManager.get<Assistant[]>(cacheKey);
+      
+      if (cachedAssistants) {
+        console.log('✅ 从缓存加载智能体数据');
+        setAssistants(cachedAssistants);
+        setIsLoadingAllAssistants(false);
+        return;
+      }
+      
+      // 缓存未命中，从API获取
+      console.log('🔄 从API获取智能体数据');
       const client = createClient();
       const response = await client.assistants.search({
         metadata: {
@@ -117,16 +136,18 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         },
       });
 
-      setAssistants({
-        ...response,
-      });
+      const assistantsData = Array.isArray(response) ? response : [];
+      setAssistants(assistantsData);
+      
+      // 缓存数据（10分钟）
+      await cacheManager.set(cacheKey, assistantsData, 600);
+      
       setIsLoadingAllAssistants(false);
     } catch (e) {
-      toast({
-        title: "Failed to get assistants",
-        description: "Please try again later.",
+      await handleError(e as Error, {
+        operation: 'get_assistants',
+        metadata: { userId }
       });
-      console.error("Failed to get assistants", e);
       setIsLoadingAllAssistants(false);
     }
   };

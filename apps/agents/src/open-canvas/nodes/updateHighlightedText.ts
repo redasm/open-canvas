@@ -45,7 +45,7 @@ export const updateHighlightedText = async (
   state: typeof OpenCanvasGraphAnnotation.State,
   config: LangGraphRunnableConfig
 ): Promise<OpenCanvasGraphReturnType> => {
-  const { modelProvider, modelName } = getModelConfig(config);
+  const { modelProvider, modelName } = await getModelConfig(config);
   let model: RunnableBinding<
     BaseLanguageModelInput,
     AIMessageChunk,
@@ -103,7 +103,7 @@ export const updateHighlightedText = async (
   }
 
   const contextDocumentMessages = await createContextDocumentMessages(config);
-  const isO1MiniModel = isUsingO1MiniModel(config);
+  const isO1MiniModel = await isUsingO1MiniModel(config);
   const response = await model.invoke([
     {
       role: isO1MiniModel ? "user" : "system",

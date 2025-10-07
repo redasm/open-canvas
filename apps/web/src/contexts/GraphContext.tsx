@@ -24,13 +24,10 @@ import {
   DEFAULT_INPUTS,
   OC_WEB_SEARCH_RESULTS_MESSAGE_KEY,
 } from "@opencanvas/shared/constants";
-import {
-  ALL_MODEL_NAMES,
-  NON_STREAMING_TEXT_MODELS,
-  NON_STREAMING_TOOL_CALLING_MODELS,
-  DEFAULT_MODEL_CONFIG,
-  DEFAULT_MODEL_NAME,
-} from "@opencanvas/shared/models";
+// 使用新的类型定义，不再依赖旧的models.ts
+type ALL_MODEL_NAMES = string;
+import { useModelRegistry } from "@/hooks/use-model-registry";
+import { getDefaultModelId, getDefaultModelConfig, isNonStreamingTextModel } from "@opencanvas/shared/config/default-model-config";
 import { Thread } from "@langchain/langgraph-sdk";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -115,6 +112,7 @@ function extractStreamDataOutput(output: any) {
 
 export function GraphProvider({ children }: { children: ReactNode }) {
   const userData = useUserContext();
+  const { getModel } = useModelRegistry();
   const assistantsData = useAssistantContext();
   const threadData = useThreadContext();
   const { toast } = useToast();
@@ -1090,13 +1088,16 @@ export function GraphProvider({ children }: { children: ReactNode }) {
               }
             }
 
+            // 使用新系统检查模型是否支持流式文本
+            const isNonStreaming = isNonStreamingTextModel(threadData.modelName);
+            
             if (
               [
                 "rewriteArtifactTheme",
                 "rewriteCodeArtifactTheme",
                 "customAction",
               ].includes(langgraphNode) &&
-              NON_STREAMING_TEXT_MODELS.some((m) => m === threadData.modelName)
+              isNonStreaming
             ) {
               if (!artifact) {
                 toast({
@@ -1367,8 +1368,11 @@ export function GraphProvider({ children }: { children: ReactNode }) {
         thread.metadata.modelConfig as CustomModelConfig
       );
     } else {
-      threadData.setModelName(DEFAULT_MODEL_NAME);
-      threadData.setModelConfig(DEFAULT_MODEL_NAME, DEFAULT_MODEL_CONFIG);
+      // 使用新系统的默认模型
+      const defaultModelId = getDefaultModelId();
+      const defaultConfig = getDefaultModelConfig();
+      threadData.setModelName(defaultModelId);
+      threadData.setModelConfig(defaultModelId, defaultConfig);
     }
 
     const castValues: {

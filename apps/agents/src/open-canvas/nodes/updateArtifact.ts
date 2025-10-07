@@ -29,7 +29,7 @@ export const updateArtifact = async (
   state: typeof OpenCanvasGraphAnnotation.State,
   config: LangGraphRunnableConfig
 ): Promise<OpenCanvasGraphReturnType> => {
-  const { modelProvider, modelName } = getModelConfig(config);
+  const { modelProvider, modelName } = await getModelConfig(config);
   let smallModel: Awaited<ReturnType<typeof getModelFromConfig>>;
   if (modelProvider.includes("openai") || modelName.includes("3-5-sonnet")) {
     // Custom model is intelligent enough for updating artifacts
@@ -115,7 +115,7 @@ export const updateArtifact = async (
   }
 
   const contextDocumentMessages = await createContextDocumentMessages(config);
-  const isO1MiniModel = isUsingO1MiniModel(config);
+  const isO1MiniModel = await isUsingO1MiniModel(config);
   const updatedArtifact = await smallModel.invoke([
     { role: isO1MiniModel ? "user" : "system", content: formattedPrompt },
     ...contextDocumentMessages,

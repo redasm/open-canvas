@@ -2,6 +2,7 @@ import { LANGGRAPH_API_URL } from "../../../constants";
 import { NextRequest, NextResponse } from "next/server";
 import { Session, User } from "@supabase/supabase-js";
 import { verifyUserAuthenticated } from "../../../lib/supabase/verify_user_server";
+import { withErrorHandler } from "../middleware/error-handler";
 
 function getCorsHeaders() {
   return {
@@ -12,6 +13,15 @@ function getCorsHeaders() {
 }
 
 async function handleRequest(req: NextRequest, method: string) {
+  // 检查是否是本地API路由，如果是则直接返回，不处理
+  const path = req.nextUrl.pathname.replace(/^\/?api\//, "");
+  const localApiRoutes = ['models', 'assistant-templates'];
+  
+  if (localApiRoutes.some(route => path.startsWith(route))) {
+    // 直接返回，让Next.js处理这些路由
+    return new NextResponse(null, { status: 404 });
+  }
+
   let session: Session | undefined;
   let user: User | undefined;
   try {
@@ -19,11 +29,17 @@ async function handleRequest(req: NextRequest, method: string) {
     session = authRes?.session;
     user = authRes?.user;
     if (!session || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { 
+        status: 401,
+        headers: getCorsHeaders()
+      });
     }
   } catch (e) {
     console.error("Failed to fetch user", e);
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { 
+      status: 401,
+      headers: getCorsHeaders()
+    });
   }
 
   try {
@@ -76,9 +92,9 @@ async function handleRequest(req: NextRequest, method: string) {
         res.status,
         res.statusText
       );
-      return new Response(res.body, {
+      return NextResponse.json({ error: res.statusText }, { 
         status: res.status,
-        statusText: res.statusText,
+        headers: getCorsHeaders()
       });
     }
 
@@ -94,7 +110,7 @@ async function handleRequest(req: NextRequest, method: string) {
       }
     });
 
-    return new Response(res.body, {
+    return new NextResponse(res.body, {
       status: res.status,
       statusText: res.statusText,
       headers,
@@ -103,15 +119,18 @@ async function handleRequest(req: NextRequest, method: string) {
     console.error("Error in proxy");
     console.error(e);
     console.error("\n\n\nEND ERROR\n\n");
-    return NextResponse.json({ error: e.message }, { status: e.status ?? 500 });
+    return NextResponse.json({ error: e.message }, { 
+      status: e.status ?? 500,
+      headers: getCorsHeaders()
+    });
   }
 }
 
-export const GET = (req: NextRequest) => handleRequest(req, "GET");
-export const POST = (req: NextRequest) => handleRequest(req, "POST");
-export const PUT = (req: NextRequest) => handleRequest(req, "PUT");
-export const PATCH = (req: NextRequest) => handleRequest(req, "PATCH");
-export const DELETE = (req: NextRequest) => handleRequest(req, "DELETE");
+export const GET = withErrorHandler(async (req: NextRequest) => handleRequest(req, "GET"));
+export const POST = withErrorHandler(async (req: NextRequest) => handleRequest(req, "POST"));
+export const PUT = withErrorHandler(async (req: NextRequest) => handleRequest(req, "PUT"));
+export const PATCH = withErrorHandler(async (req: NextRequest) => handleRequest(req, "PATCH"));
+export const DELETE = withErrorHandler(async (req: NextRequest) => handleRequest(req, "DELETE"));
 
 // Add a new OPTIONS handler
 export const OPTIONS = () => {

@@ -1,0 +1,160 @@
+/**
+ * 模型配置系统重构 - 统一模型配置接口
+ * 主要改动：
+ * 1. 定义标准化的模型提供商配置接口
+ * 2. 定义标准化的模型定义接口
+ * 3. 支持动态配置和运行时注册
+ * 4. 提供类型安全的配置管理
+ */
+
+export interface ModelProviderConfig {
+  /** 提供商名称 */
+  name: string;
+  /** 显示名称 */
+  displayName: string;
+  /** API密钥 */
+  apiKey: string;
+  /** 基础URL（可选） */
+  baseUrl?: string;
+  /** 自定义请求头（可选） */
+  customHeaders?: Record<string, string>;
+  /** 支持的功能特性 */
+  supportedFeatures: {
+    /** 是否支持工具调用 */
+    toolCalling: boolean;
+    /** 是否支持流式响应 */
+    streaming: boolean;
+    /** 是否支持温度参数 */
+    temperature: boolean;
+    /** 最大令牌数 */
+    maxTokens: number;
+  };
+}
+
+export interface ModelDefinition {
+  /** 模型唯一标识 */
+  id: string;
+  /** 模型名称 */
+  name: string;
+  /** 显示名称 */
+  displayName: string;
+  /** 提供商名称 */
+  provider: string;
+  /** 提供商配置 */
+  providerConfig: ModelProviderConfig;
+  /** 模型能力 */
+  capabilities: {
+    /** 最大令牌数 */
+    maxTokens: number;
+    /** 温度参数范围 */
+    temperatureRange: { 
+      min: number; 
+      max: number; 
+      default: number 
+    };
+    /** 是否支持工具调用 */
+    supportsToolCalling: boolean;
+    /** 是否支持流式响应 */
+    supportsStreaming: boolean;
+  };
+  /** 元数据 */
+  metadata: {
+    /** 是否为新模型 */
+    isNew: boolean;
+    /** 模型分类 */
+    category: string;
+    /** 模型描述（可选） */
+    description?: string;
+  };
+}
+
+export interface ModelConfig {
+  /** 温度参数 */
+  temperature: number;
+  /** 最大令牌数 */
+  maxTokens: number;
+  /** 是否启用工具调用 */
+  toolCalling: boolean;
+  /** 是否启用流式响应 */
+  streaming: boolean;
+}
+
+export interface ModelInvokeOptions {
+  /** 是否启用工具调用 */
+  isToolCalling?: boolean;
+  /** 自定义温度参数 */
+  temperature?: number;
+  /** 自定义最大令牌数 */
+  maxTokens?: number;
+  /** 超时时间（毫秒） */
+  timeout?: number;
+  /** 重试次数 */
+  retries?: number;
+}
+
+export interface ModelResponse {
+  /** 响应内容 */
+  content: string;
+  /** 工具调用（如果有） */
+  toolCalls?: Array<{
+    name: string;
+    args: Record<string, any>;
+  }>;
+  /** 元数据 */
+  metadata: {
+    /** 使用的令牌数 */
+    tokensUsed: number;
+    /** 响应时间（毫秒） */
+    responseTime: number;
+    /** 模型名称 */
+    modelName: string;
+  };
+}
+
+/**
+ * 模型错误类型
+ */
+export enum ModelErrorCode {
+  MODEL_NOT_FOUND = 'MODEL_NOT_FOUND',
+  PROVIDER_NOT_FOUND = 'PROVIDER_NOT_FOUND',
+  MODEL_INVOCATION_FAILED = 'MODEL_INVOCATION_FAILED',
+  UNSUPPORTED_PROVIDER = 'UNSUPPORTED_PROVIDER',
+  INVALID_CONFIG = 'INVALID_CONFIG',
+  API_KEY_MISSING = 'API_KEY_MISSING',
+  RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED',
+  TIMEOUT = 'TIMEOUT',
+}
+
+export class ModelError extends Error {
+  constructor(
+    public code: ModelErrorCode,
+    message: string,
+    public details?: any,
+    public context?: any
+  ) {
+    super(message);
+    this.name = 'ModelError';
+  }
+}
+
+/**
+ * 模型提供商类型
+ */
+export type ModelProvider = 
+  | 'openai'
+  | 'anthropic' 
+  | 'google-genai'
+  | 'azure_openai'
+  | 'fireworks'
+  | 'groq'
+  | 'ollama';
+
+/**
+ * 模型分类
+ */
+export type ModelCategory = 
+  | 'general'
+  | 'coding'
+  | 'reasoning'
+  | 'multimodal'
+  | 'local';

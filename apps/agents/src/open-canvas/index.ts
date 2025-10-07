@@ -16,6 +16,10 @@ import { OpenCanvasGraphAnnotation } from "./state.js";
 import { summarizer } from "./nodes/summarizer.js";
 import { graph as webSearchGraph } from "../web-search/index.js";
 import { createAIMessageFromWebResults } from "../utils.js";
+import { initializeApp } from "../init.js";
+
+// 在模块加载时初始化应用
+initializeApp().catch(console.error);
 
 const routeNode = (state: typeof OpenCanvasGraphAnnotation.State) => {
   if (!state.next) {

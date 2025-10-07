@@ -1,9 +1,7 @@
-import {
-  ALL_MODEL_NAMES,
-  ALL_MODELS,
-  DEFAULT_MODEL_CONFIG,
-  DEFAULT_MODEL_NAME,
-} from "@opencanvas/shared/models";
+// 使用新的类型定义，不再依赖旧的models.ts
+type ALL_MODEL_NAMES = string;
+import { useModelRegistry } from "@/hooks/use-model-registry";
+import { getDefaultModelId, getDefaultModelConfig } from "@opencanvas/shared/config/default-model-config";
 import { CustomModelConfig } from "@opencanvas/shared/types";
 import { Thread } from "@langchain/langgraph-sdk";
 import { createClient } from "../hooks/utils";
@@ -37,49 +35,64 @@ const ThreadContext = createContext<ThreadContentType | undefined>(undefined);
 export function ThreadProvider({ children }: { children: ReactNode }) {
   const { user } = useUserContext();
   const { toast } = useToast();
+  const { models, loading: modelsLoading } = useModelRegistry();
   const [threadId, setThreadId] = useQueryState("threadId");
   const [userThreads, setUserThreads] = useState<Thread[]>([]);
   const [isUserThreadsLoading, setIsUserThreadsLoading] = useState(false);
-  const [modelName, setModelName] =
-    useState<ALL_MODEL_NAMES>(DEFAULT_MODEL_NAME);
+  const [modelName, setModelName] = useState<ALL_MODEL_NAMES>(getDefaultModelId());
   const [createThreadLoading, setCreateThreadLoading] = useState(false);
 
+  // 使用新的模型注册器系统初始化模型配置
   const [modelConfigs, setModelConfigs] = useState<
     Record<ALL_MODEL_NAMES, CustomModelConfig>
-  >(() => {
-    // Initialize with default configs for all models
-    const initialConfigs: Record<ALL_MODEL_NAMES, CustomModelConfig> =
-      {} as Record<ALL_MODEL_NAMES, CustomModelConfig>;
+  >({});
 
-    ALL_MODELS.forEach((model) => {
-      const modelKey = model.modelName || model.name;
-
-      initialConfigs[modelKey] = {
-        ...model.config,
-        provider: model.config.provider,
-        temperatureRange: {
-          ...(model.config.temperatureRange ||
-            DEFAULT_MODEL_CONFIG.temperatureRange),
-        },
-        maxTokens: {
-          ...(model.config.maxTokens || DEFAULT_MODEL_CONFIG.maxTokens),
-        },
-        ...(model.config.provider === "azure_openai" && {
-          azureConfig: {
-            azureOpenAIApiKey: process.env._AZURE_OPENAI_API_KEY || "",
-            azureOpenAIApiInstanceName:
-              process.env._AZURE_OPENAI_API_INSTANCE_NAME || "",
-            azureOpenAIApiDeploymentName:
-              process.env._AZURE_OPENAI_API_DEPLOYMENT_NAME || "",
-            azureOpenAIApiVersion:
-              process.env._AZURE_OPENAI_API_VERSION || "2024-08-01-preview",
-            azureOpenAIBasePath: process.env._AZURE_OPENAI_API_BASE_PATH,
+  // 当模型加载完成后，初始化模型配置
+  useMemo(() => {
+    if (!modelsLoading && models.length > 0) {
+      const initialConfigs: Record<ALL_MODEL_NAMES, CustomModelConfig> = {};
+      
+      models.forEach((model) => {
+        initialConfigs[model.id] = {
+          provider: model.provider,
+          temperatureRange: {
+            min: model.capabilities.temperatureRange.min,
+            max: model.capabilities.temperatureRange.max,
+            default: model.capabilities.temperatureRange.default,
+            current: model.capabilities.temperatureRange.default,
           },
-        }),
-      };
-    });
-    return initialConfigs;
-  });
+          maxTokens: {
+            min: 1,
+            max: model.capabilities.maxTokens,
+            default: Math.min(model.capabilities.maxTokens, 4096),
+            current: Math.min(model.capabilities.maxTokens, 4096),
+          },
+          ...(model.provider === "azure_openai" && {
+            azureConfig: {
+              azureOpenAIApiKey: process.env._AZURE_OPENAI_API_KEY || "",
+              azureOpenAIApiInstanceName:
+                process.env._AZURE_OPENAI_API_INSTANCE_NAME || "",
+              azureOpenAIApiDeploymentName:
+                process.env._AZURE_OPENAI_API_DEPLOYMENT_NAME || "",
+              azureOpenAIApiVersion:
+                process.env._AZURE_OPENAI_API_VERSION || "2024-08-01-preview",
+              azureOpenAIBasePath: process.env._AZURE_OPENAI_API_BASE_PATH,
+            },
+          }),
+        };
+      });
+      
+      setModelConfigs(initialConfigs);
+      
+      // 如果当前模型不在新系统中，设置为第一个可用模型
+      if (!modelName || !initialConfigs[modelName]) {
+        const defaultModel = models.find(m => m.metadata.isNew === false) || models[0];
+        if (defaultModel) {
+          setModelName(defaultModel.id);
+        }
+      }
+    }
+  }, [models, modelsLoading, modelName]);
 
   const modelConfig = useMemo(() => {
     // Try exact match first, then try without "azure/" or "groq/" prefixes

@@ -54,7 +54,7 @@ export async function fixMisFormattedContextDocMessage(
     return undefined;
   }
 
-  const { modelProvider } = getModelConfig(config);
+  const { modelProvider } = await getModelConfig(config);
   const newMsgId = uuidv4();
   let changesMade = false;
 

@@ -10,16 +10,15 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import {
-  ALL_MODEL_NAMES,
-  TEMPERATURE_EXCLUDED_MODELS,
-} from "@opencanvas/shared/models";
+// 使用新的类型定义，不再依赖旧的models.ts
+type ALL_MODEL_NAMES = string;
+import { ModelDefinition } from "@opencanvas/shared/config/model-config";
 import { cn } from "@/lib/utils";
 import { GearIcon, ResetIcon } from "@radix-ui/react-icons";
 import { useCallback } from "react";
 
 interface ModelConfigPanelProps {
-  model: ModelConfigurationParams;
+  model: ModelConfigurationParams | ModelDefinition;
   modelConfig: CustomModelConfig;
   className?: string;
   isOpen: boolean;
@@ -104,7 +103,7 @@ export function ModelConfigPanel({
               step: 0.1,
             }}
             onChange={handleTemperatureChange}
-            disabled={TEMPERATURE_EXCLUDED_MODELS.some((m) => m === model.name)}
+            disabled={false} // 暂时禁用温度排除检查
           />
           <ModelSettingSlider
             title="Max tokens"

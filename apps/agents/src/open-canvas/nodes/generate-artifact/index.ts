@@ -23,7 +23,7 @@ export const generateArtifact = async (
   state: typeof OpenCanvasGraphAnnotation.State,
   config: LangGraphRunnableConfig
 ): Promise<OpenCanvasGraphReturnType> => {
-  const { modelName } = getModelConfig(config, {
+  const { modelName } = await getModelConfig(config, {
     isToolCalling: true,
   });
   const smallModel = await getModelFromConfig(config, {
@@ -56,7 +56,7 @@ export const generateArtifact = async (
     : formattedNewArtifactPrompt;
 
   const contextDocumentMessages = await createContextDocumentMessages(config);
-  const isO1MiniModel = isUsingO1MiniModel(config);
+  const isO1MiniModel = await isUsingO1MiniModel(config);
   const response = await modelWithArtifactTool.invoke(
     [
       { role: isO1MiniModel ? "user" : "system", content: fullSystemPrompt },

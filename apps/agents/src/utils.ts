@@ -22,11 +22,10 @@ import {
   CONTEXT_DOCUMENTS_NAMESPACE,
   OC_WEB_SEARCH_RESULTS_MESSAGE_KEY,
 } from "@opencanvas/shared/constants";
-import {
-  TEMPERATURE_EXCLUDED_MODELS,
-  LANGCHAIN_USER_ONLY_MODELS,
-} from "@opencanvas/shared/models";
+// 使用新的模型注册器系统，不再依赖旧的models.ts
+// 这些常量现在通过ModelRegistry动态获取
 import { createClient, Session, User } from "@supabase/supabase-js";
+import { getInitializedModelRegistry } from "./config/init-model-registry";
 
 export const formatReflections = (
   reflections: Reflections,
@@ -159,12 +158,20 @@ export const formatArtifactContentWithTemplate = (
   );
 };
 
-export const getModelConfig = (
+/**
+ * 重构后的模型配置获取函数
+ * 主要改动：
+ * 1. 使用新的模型注册器替代硬编码逻辑
+ * 2. 简化配置获取流程
+ * 3. 添加错误处理和验证
+ * 4. 支持动态模型配置
+ */
+export const getModelConfig = async (
   config: LangGraphRunnableConfig,
   extra?: {
     isToolCalling?: boolean;
   }
-): {
+): Promise<{
   modelName: string;
   modelProvider: string;
   modelConfig?: CustomModelConfig;
@@ -177,16 +184,88 @@ export const getModelConfig = (
   };
   apiKey?: string;
   baseUrl?: string;
-} => {
+}> => {
   const customModelName = config.configurable?.customModelName as string;
-  if (!customModelName) throw new Error("Model name is missing in config.");
+  if (!customModelName) {
+    throw new Error("Model name is missing in config.");
+  }
 
   const modelConfig = config.configurable?.modelConfig as CustomModelConfig;
+  
+  // 使用新的模型注册器获取模型信息
+  try {
+    const registry = await getInitializedModelRegistry();
+    const model = registry.getModel(customModelName);
+    
+    if (model) {
+      const provider = registry.getProvider(model.provider);
+      if (!provider) {
+        throw new Error(`Provider ${model.provider} not found`);
+      }
+
+      // 处理工具调用回退逻辑
+      let actualModelName = model.name;
+      if (extra?.isToolCalling && !model.capabilities.supportsToolCalling) {
+        // 查找支持工具调用的回退模型
+        const fallbackModels = registry.getModelsByProvider(model.provider)
+          .filter((m: any) => m.capabilities.supportsToolCalling);
+        
+        if (fallbackModels.length > 0) {
+          actualModelName = fallbackModels[0].name;
+          console.log(`🔄 模型 ${model.name} 不支持工具调用，回退到 ${actualModelName}`);
+        }
+      }
+
+      const result: any = {
+        modelName: actualModelName,
+        modelProvider: model.provider,
+        modelConfig,
+        apiKey: provider.apiKey,
+      };
+
+      // 添加基础URL（如果存在）
+      if (provider.baseUrl) {
+        result.baseUrl = provider.baseUrl;
+      }
+
+      // 特殊处理Azure配置
+      if (model.provider === 'azure_openai') {
+        result.azureConfig = {
+          azureOpenAIApiKey: process.env._AZURE_OPENAI_API_KEY || "",
+          azureOpenAIApiInstanceName: process.env._AZURE_OPENAI_API_INSTANCE_NAME || "",
+          azureOpenAIApiDeploymentName: process.env._AZURE_OPENAI_API_DEPLOYMENT_NAME || "",
+          azureOpenAIApiVersion: process.env._AZURE_OPENAI_API_VERSION || "2024-08-01-preview",
+          azureOpenAIBasePath: process.env._AZURE_OPENAI_API_BASE_PATH,
+        };
+      }
+
+      return result;
+    }
+  } catch (error) {
+    console.warn(`⚠️  新模型注册器初始化失败，使用旧逻辑:`, error);
+  }
+
+  // 向后兼容：如果新系统找不到模型，使用旧的逻辑
+  console.warn(`⚠️  模型 ${customModelName} 未在新系统中找到，使用旧逻辑`);
+  return getLegacyModelConfig(customModelName, modelConfig, extra);
+};
+
+/**
+ * 旧版模型配置逻辑（向后兼容）
+ */
+function getLegacyModelConfig(
+  customModelName: string,
+  modelConfig: CustomModelConfig | undefined,
+  extra?: { isToolCalling?: boolean }
+): any {
+  const providerConfig = {
+    modelName: customModelName,
+    modelConfig,
+  };
 
   if (customModelName.startsWith("azure/")) {
     let actualModelName = customModelName.replace("azure/", "");
     if (extra?.isToolCalling && actualModelName.includes("o1")) {
-      // Fallback to 4o model for tool calling since o1 does not support tools.
       actualModelName = "gpt-4o";
     }
     return {
@@ -194,30 +273,17 @@ export const getModelConfig = (
       modelProvider: "azure_openai",
       azureConfig: {
         azureOpenAIApiKey: process.env._AZURE_OPENAI_API_KEY || "",
-        azureOpenAIApiInstanceName:
-          process.env._AZURE_OPENAI_API_INSTANCE_NAME || "",
-        azureOpenAIApiDeploymentName:
-          process.env._AZURE_OPENAI_API_DEPLOYMENT_NAME || "",
-        azureOpenAIApiVersion:
-          process.env._AZURE_OPENAI_API_VERSION || "2024-08-01-preview",
+        azureOpenAIApiInstanceName: process.env._AZURE_OPENAI_API_INSTANCE_NAME || "",
+        azureOpenAIApiDeploymentName: process.env._AZURE_OPENAI_API_DEPLOYMENT_NAME || "",
+        azureOpenAIApiVersion: process.env._AZURE_OPENAI_API_VERSION || "2024-08-01-preview",
         azureOpenAIBasePath: process.env._AZURE_OPENAI_API_BASE_PATH,
       },
     };
   }
 
-  const providerConfig = {
-    modelName: customModelName,
-    modelConfig,
-  };
-
-  if (
-    customModelName.includes("gpt-") ||
-    customModelName.includes("o1") ||
-    customModelName.includes("o3")
-  ) {
+  if (customModelName.includes("gpt-") || customModelName.includes("o1") || customModelName.includes("o3")) {
     let actualModelName = providerConfig.modelName;
     if (extra?.isToolCalling && actualModelName.includes("o1")) {
-      // Fallback to 4o model for tool calling since o1 does not support tools.
       actualModelName = "gpt-4o";
     }
     return {
@@ -238,17 +304,25 @@ export const getModelConfig = (
 
   if (customModelName.includes("fireworks/")) {
     let actualModelName = providerConfig.modelName;
-    if (
-      extra?.isToolCalling &&
-      actualModelName !== "accounts/fireworks/models/llama-v3p3-70b-instruct"
-    ) {
-      actualModelName = "accounts/fireworks/models/llama-v3p3-70b-instruct";
+    
+    if (actualModelName.includes("deepseek-r1")) {
+      actualModelName = "deepseek-r1";
+    } else if (actualModelName.includes("deepseek-v3")) {
+      actualModelName = "deepseek-v3";
+    } else if (actualModelName.includes("llama-v3p3-70b-instruct")) {
+      actualModelName = "llama-v3p3-70b-instruct";
     }
+    
+    if (extra?.isToolCalling && actualModelName !== "llama-v3p3-70b-instruct" && actualModelName !== "deepseek-r1") {
+      actualModelName = "llama-v3p3-70b-instruct";
+    }
+    
     return {
       ...providerConfig,
       modelName: actualModelName,
       modelProvider: "fireworks",
       apiKey: process.env.FIREWORKS_API_KEY,
+      baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
     };
   }
 
@@ -264,21 +338,6 @@ export const getModelConfig = (
   if (customModelName.includes("gemini-")) {
     let actualModelName = providerConfig.modelName;
     if (extra?.isToolCalling && actualModelName.includes("thinking")) {
-      // Gemini thinking does not support tools.
-      actualModelName = "gemini-2.0-flash-exp";
-    }
-    return {
-      ...providerConfig,
-      modelName: actualModelName,
-      modelProvider: "google-genai",
-      apiKey: process.env.GOOGLE_API_KEY,
-    };
-  }
-
-  if (customModelName.includes("gemini-")) {
-    let actualModelName = providerConfig.modelName;
-    if (extra?.isToolCalling && actualModelName.includes("thinking")) {
-      // Gemini thinking does not support tools.
       actualModelName = "gemini-2.0-flash-exp";
     }
     return {
@@ -293,13 +352,12 @@ export const getModelConfig = (
     return {
       modelName: customModelName.replace("ollama-", ""),
       modelProvider: "ollama",
-      baseUrl:
-        process.env.OLLAMA_API_URL || "http://host.docker.internal:11434",
+      baseUrl: process.env.OLLAMA_API_URL || "http://host.docker.internal:11434",
     };
   }
 
   throw new Error("Unknown model provider");
-};
+}
 
 export function optionallyGetSystemPromptFromConfig(
   config: LangGraphRunnableConfig
@@ -333,8 +391,8 @@ async function getUserFromConfig(
   return authRes.data.user || undefined;
 }
 
-export function isUsingO1MiniModel(config: LangGraphRunnableConfig) {
-  const { modelName } = getModelConfig(config);
+export async function isUsingO1MiniModel(config: LangGraphRunnableConfig) {
+  const { modelName } = await getModelConfig(config);
   return modelName.includes("o1-mini");
 }
 
@@ -353,7 +411,7 @@ export async function getModelFromConfig(
     apiKey,
     baseUrl,
     modelConfig,
-  } = getModelConfig(config, {
+  } = await getModelConfig(config, {
     isToolCalling: extra?.isToolCalling,
   });
   const { temperature = 0.5, maxTokens } = {
@@ -362,26 +420,65 @@ export async function getModelFromConfig(
     ...extra,
   };
 
-  const isLangChainUserModel = LANGCHAIN_USER_ONLY_MODELS.some(
-    (m) => m === modelName
-  );
-  if (isLangChainUserModel) {
-    const user = await getUserFromConfig(config);
-    if (!user) {
-      throw new Error(
-        "Unauthorized. Can not use LangChain only models without a user."
-      );
-    }
-    if (!user.email?.endsWith("@langchain.dev")) {
-      throw new Error(
-        "Unauthorized. Can not use LangChain only models without a user with a @langchain.dev email."
-      );
-    }
+  // 🔧 特殊处理阿里云百炼
+  if (baseUrl?.includes("dashscope.aliyuncs.com")) {
+    const { ChatOpenAI } = await import("@langchain/openai");
+    const model = new ChatOpenAI({
+      modelName,
+      openAIApiKey: apiKey,
+      configuration: {
+        baseURL: baseUrl,
+      },
+      temperature,
+      maxTokens,
+    });
+    
+    // 🔧 阿里云百炼不支持具体的 tool_choice，只支持 "none" 或 "auto"
+    // 我们需要重写 bindTools 方法来处理这个问题
+    const originalBindTools = model.bindTools.bind(model);
+    model.bindTools = function(tools: any, options?: any) {
+      // 如果传入了具体的 tool_choice，替换为 "auto"
+      if (options?.tool_choice && typeof options.tool_choice === 'string' && options.tool_choice !== 'auto' && options.tool_choice !== 'none') {
+        options.tool_choice = 'auto';
+      }
+      return originalBindTools(tools, options);
+    };
+    
+    return model as any;
   }
 
-  const includeStandardParams = !TEMPERATURE_EXCLUDED_MODELS.some(
-    (m) => m === modelName
-  );
+  // 使用新的模型注册器系统检查模型特性
+  let includeStandardParams = true;
+  
+  try {
+    // 初始化模型注册器（为将来的扩展做准备）
+    await getInitializedModelRegistry();
+    // const model = registry.getModel(modelName); // 暂时不使用，避免未使用变量警告
+    
+    // 检查是否为LangChain专用模型（通过模型名称判断）
+    const isLangChainOnlyModel = modelName.includes('langchain') || modelName.includes('o1');
+    if (isLangChainOnlyModel) {
+      const user = await getUserFromConfig(config);
+      if (!user) {
+        throw new Error(
+          "Unauthorized. Can not use LangChain only models without a user."
+        );
+      }
+      if (!user.email?.endsWith("@langchain.dev")) {
+        throw new Error(
+          "Unauthorized. Can not use LangChain only models without a user with a @langchain.dev email."
+        );
+      }
+    }
+
+    // 检查是否支持温度参数（通过模型名称判断）
+    const temperatureExcludedModels = ['o1-preview', 'o1-mini', 'o3-mini'];
+    includeStandardParams = !temperatureExcludedModels.some(excluded => modelName.includes(excluded));
+  } catch (error) {
+    // 如果新系统不可用，使用默认值
+    console.warn('Model registry not available, using default parameters:', error);
+    includeStandardParams = true;
+  }
 
   return await initChatModel(modelName, {
     modelProvider,
@@ -529,7 +626,7 @@ export async function createContextDocumentMessages(
   config: LangGraphRunnableConfig,
   contextDocuments?: ContextDocument[]
 ): Promise<MessageFieldWithRole[]> {
-  const { modelProvider, modelName } = getModelConfig(config);
+  const { modelProvider, modelName } = await getModelConfig(config);
   const documents: ContextDocument[] = contextDocuments || [];
 
   if (!documents.length && config) {

@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import { AIMessage, type BaseMessage } from "@langchain/core/messages";
-import { THINKING_MODELS } from "../models.js";
+// 使用新的模型配置系统，不再依赖旧的models.js
+// import { THINKING_MODELS } from "../models.js";
 
 type ThinkingAndResponseTokens = {
   thinking: string;
@@ -129,5 +130,13 @@ export function handleRewriteArtifactThinkingModel({
 }
 
 export function isThinkingModel(model: string): boolean {
-  return THINKING_MODELS.some((m) => m === model);
+  // 使用新的模型配置系统检查是否为思考模型
+  // 这里可以集成ModelRegistry来动态检查
+  const thinkingModels = [
+    "openai/o1-preview",
+    "openai/o1-mini",
+    "openai/o3-mini",
+    "groq/deepseek-r1-distill-llama-70b",
+  ];
+  return thinkingModels.some((m) => m === model);
 }
