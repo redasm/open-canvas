@@ -97,7 +97,25 @@ async function dynamicDeterminePathFunc({
     },
   ]);
 
-  return result.tool_calls?.[0]?.args as z.infer<typeof schema> | undefined;
+  // Handle DashScope models that don't support tool calling
+  if (result.tool_calls?.[0]?.args) {
+    return result.tool_calls[0].args as z.infer<typeof schema>;
+  }
+  
+  // Fallback for DashScope models: parse response content
+  if (typeof result.content === 'string') {
+    try {
+      const parsed = JSON.parse(result.content);
+      if (parsed.route) {
+        return parsed as z.infer<typeof schema>;
+      }
+    } catch (e) {
+      // If JSON parsing fails, return default route
+      return { route: "replyToGeneralInput" } as z.infer<typeof schema>;
+    }
+  }
+  
+  return undefined;
 }
 
 export const dynamicDeterminePath = traceable(dynamicDeterminePathFunc, {

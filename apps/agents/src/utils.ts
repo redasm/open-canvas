@@ -236,14 +236,16 @@ export const getModelConfig = (
     };
   }
 
+  console.log("DASHSCOPE_API_KEY", process.env.DASHSCOPE_API_KEY);
+  console.log("DASHSCOPE_API_URL", process.env.DASHSCOPE_API_URL);
   if (customModelName.includes("dashscope/")) {
     let actualModelName = customModelName.replace("dashscope/", "");
     return {
       ...providerConfig,
       modelName: actualModelName,
       modelProvider: "openai",
-      apiKey: process.env.DASHSCOPE_API_KEY,
-      baseUrl: process.env.DASHSCOPE_API_URL,
+      apiKey: process.env.DASHSCOPE_API_KEY || "sk-5f7a6e663fab4487bbc16d3a5c7e1912",
+      baseUrl: process.env.DASHSCOPE_API_URL || "https://dashscope.aliyuncs.com/compatible-mode/v1",
     };
   }
 
@@ -377,6 +379,35 @@ export async function getModelFromConfig(
   const includeStandardParams = !TEMPERATURE_EXCLUDED_MODELS.some(
     (m) => m === modelName
   );
+
+  console.log("modelProvider", modelProvider);
+  console.log("baseUrl", baseUrl);
+  console.log("modelName", modelName);
+  console.log("apiKey", apiKey);
+  // Special handling for DashScope models with custom baseUrl
+  if (modelProvider === "openai" && baseUrl && baseUrl.includes("dashscope")) {
+    const { ChatOpenAI } = await import("@langchain/openai");
+    const model = new ChatOpenAI({
+      modelName,
+      apiKey,
+      configuration: {
+        baseURL: baseUrl,
+      },
+      ...(includeStandardParams
+        ? { maxTokens, temperature }
+        : {
+            maxCompletionTokens: maxTokens,
+          }),
+    }) as any;
+    
+    // Override bind method to prevent tool binding for DashScope models
+    model.bind = function(tools: any) {
+      console.log("DashScope model: tool calling disabled, ignoring tools:", tools);
+      return this; // Return self without binding tools
+    };
+    
+    return model;
+  }
 
   return await initChatModel(modelName, {
     modelProvider,
