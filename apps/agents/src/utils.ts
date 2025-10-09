@@ -236,19 +236,14 @@ export const getModelConfig = (
     };
   }
 
-  if (customModelName.includes("fireworks/")) {
-    let actualModelName = providerConfig.modelName;
-    if (
-      extra?.isToolCalling &&
-      actualModelName !== "accounts/fireworks/models/llama-v3p3-70b-instruct"
-    ) {
-      actualModelName = "accounts/fireworks/models/llama-v3p3-70b-instruct";
-    }
+  if (customModelName.includes("dashscope/")) {
+    let actualModelName = customModelName.replace("dashscope/", "");
     return {
       ...providerConfig,
       modelName: actualModelName,
-      modelProvider: "fireworks",
-      apiKey: process.env.FIREWORKS_API_KEY,
+      modelProvider: "openai",
+      apiKey: process.env.DASHSCOPE_API_KEY,
+      baseUrl: process.env.DASHSCOPE_API_URL,
     };
   }
 

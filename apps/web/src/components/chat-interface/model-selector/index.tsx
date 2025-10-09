@@ -144,9 +144,10 @@ export default function ModelSelector({
       return false;
     }
 
+
     if (
-      model.name.includes("fireworks/") &&
-      process.env.NEXT_PUBLIC_FIREWORKS_ENABLED === "false"
+      model.name.includes("dashscope/") &&
+      process.env.NEXT_PUBLIC_DASHSCOPE_ENABLED === "false"
     ) {
       return false;
     }
@@ -213,9 +214,10 @@ export default function ModelSelector({
   const genAiModelGroup = allAllowedModels.filter(
     (m) => m.config.provider === "google-genai"
   );
-  const fireworksModelGroup = allAllowedModels.filter(
-    (m) => m.config.provider === "fireworks"
+  const dashscopeModelGroup = allAllowedModels.filter(
+    (m) => m.name.includes("dashscope/")
   );
+
   const groqModelGroup = allAllowedModels.filter(
     (m) => m.config.provider === "groq"
   );
@@ -344,9 +346,9 @@ export default function ModelSelector({
               </CommandGroup>
             )}
 
-            {fireworksModelGroup.length > 0 && (
-              <CommandGroup heading="Fireworks" className="w-full">
-                {fireworksModelGroup.map((model) => {
+            {dashscopeModelGroup.length > 0 && (
+              <CommandGroup heading="DashScope" className="w-full">
+                {dashscopeModelGroup.map((model) => {
                   const config = modelConfigs[model.name];
                   return (
                     <CommandModelItem

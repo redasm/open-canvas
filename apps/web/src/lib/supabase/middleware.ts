@@ -2,6 +2,13 @@ import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function updateSession(request: NextRequest) {
+  // Bypass authentication if BYPASS_AUTH is set to true
+  if (process.env.BYPASS_AUTH === "true") {
+    return NextResponse.next({
+      request,
+    });
+  }
+
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
     throw new Error("NEXT_PUBLIC_SUPABASE_URL is not defined");
   }

@@ -14,16 +14,24 @@ function getCorsHeaders() {
 async function handleRequest(req: NextRequest, method: string) {
   let session: Session | undefined;
   let user: User | undefined;
-  try {
-    const authRes = await verifyUserAuthenticated();
-    session = authRes?.session;
-    user = authRes?.user;
-    if (!session || !user) {
+
+  // Bypass authentication if BYPASS_AUTH is set to true
+  if (process.env.BYPASS_AUTH === "true") {
+    // Create mock user and session for bypass mode
+    user = { id: "bypass-user" } as User;
+    session = { user } as Session;
+  } else {
+    try {
+      const authRes = await verifyUserAuthenticated();
+      session = authRes?.session;
+      user = authRes?.user;
+      if (!session || !user) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    } catch (e) {
+      console.error("Failed to fetch user", e);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-  } catch (e) {
-    console.error("Failed to fetch user", e);
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {

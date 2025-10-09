@@ -355,12 +355,12 @@ const ANTHROPIC_MODELS = [
   },
 ];
 
-const FIREWORKS_MODELS: ModelConfigurationParams[] = [
+const DASHSCOPE_MODELS: ModelConfigurationParams[] = [
   {
-    name: "accounts/fireworks/models/llama-v3p3-70b-instruct",
-    label: "Llama 3.3 70B",
+    name: "dashscope/qwen-plus",
+    label: "Qwen-Plus",
     config: {
-      provider: "fireworks",
+      provider: "dashscope",
       temperatureRange: {
         min: 0,
         max: 1,
@@ -377,30 +377,10 @@ const FIREWORKS_MODELS: ModelConfigurationParams[] = [
     isNew: false,
   },
   {
-    name: "accounts/fireworks/models/llama-v3p1-70b-instruct",
-    label: "Llama 70B (old)",
-    config: {
-      provider: "fireworks",
-      temperatureRange: {
-        min: 0,
-        max: 1,
-        default: 0.5,
-        current: 0.5,
-      },
-      maxTokens: {
-        min: 1,
-        max: 16_384,
-        default: 4_096,
-        current: 4_096,
-      },
-    },
-    isNew: false,
-  },
-  {
-    name: "accounts/fireworks/models/deepseek-v3",
+    name: "dashscope/deepseek-v3",
     label: "DeepSeek V3",
     config: {
-      provider: "fireworks",
+      provider: "dashscope",
       temperatureRange: {
         min: 0,
         max: 1,
@@ -417,10 +397,10 @@ const FIREWORKS_MODELS: ModelConfigurationParams[] = [
     isNew: false,
   },
   {
-    name: "accounts/fireworks/models/deepseek-r1",
+    name: "dashscope/deepseek-r1",
     label: "DeepSeek R1",
     config: {
-      provider: "fireworks",
+      provider: "dashscope",
       temperatureRange: {
         min: 0,
         max: 1,
@@ -601,14 +581,14 @@ export const NON_STREAMING_TEXT_MODELS = [
 
 // Models which preform CoT before generating a final response.
 export const THINKING_MODELS = [
-  "accounts/fireworks/models/deepseek-r1",
+  "deepseek-r1",
   "groq/deepseek-r1-distill-llama-70b",
 ];
 
 export const ALL_MODELS: ModelConfigurationParams[] = [
   ...OPENAI_MODELS,
   ...ANTHROPIC_MODELS,
-  ...FIREWORKS_MODELS,
+  ...DASHSCOPE_MODELS,
   ...GEMINI_MODELS,
   ...AZURE_MODELS,
   ...OLLAMA_MODELS,
@@ -617,7 +597,7 @@ export const ALL_MODELS: ModelConfigurationParams[] = [
 
 type OPENAI_MODEL_NAMES = (typeof OPENAI_MODELS)[number]["name"];
 type ANTHROPIC_MODEL_NAMES = (typeof ANTHROPIC_MODELS)[number]["name"];
-type FIREWORKS_MODEL_NAMES = (typeof FIREWORKS_MODELS)[number]["name"];
+type DASHSCOPE_MODEL_NAMES = (typeof DASHSCOPE_MODELS)[number]["name"];
 type GEMINI_MODEL_NAMES = (typeof GEMINI_MODELS)[number]["name"];
 type AZURE_MODEL_NAMES = (typeof AZURE_MODELS)[number]["name"];
 type OLLAMA_MODEL_NAMES = (typeof OLLAMA_MODELS)[number]["name"];
@@ -625,7 +605,7 @@ type GROQ_MODEL_NAMES = (typeof GROQ_MODELS)[number]["name"];
 export type ALL_MODEL_NAMES =
   | OPENAI_MODEL_NAMES
   | ANTHROPIC_MODEL_NAMES
-  | FIREWORKS_MODEL_NAMES
+  | DASHSCOPE_MODEL_NAMES
   | GEMINI_MODEL_NAMES
   | AZURE_MODEL_NAMES
   | OLLAMA_MODEL_NAMES
